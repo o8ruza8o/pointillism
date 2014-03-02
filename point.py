@@ -1,8 +1,14 @@
 from colorCluster import *
 import pylab as pl
+import random
 import numpy as np
 from scipy import *
 from scipy import misc, interpolate, spatial, random, ndimage
+
+class Point:
+    def __init__(self, position, color):
+        self.p = position
+        self.c = color
 
 def to_grayscale(img, vector = np.ones(3, dtype = float), power = 1):
     "If img is a color image (3D array), convert it to  a2D array."
@@ -12,20 +18,20 @@ def to_grayscale(img, vector = np.ones(3, dtype = float), power = 1):
     else:
         img2d = img
 
-    return 0.01 + 0.99*(img2d.max() - img2d)/(img2d.max() - img2d.min())
+    return (img2d.max() - img2d)/(img2d.max() - img2d.min()) + np.finfo(np.float).eps
 
 
 def plotit(centroids, cvec = np.ones(3, dtype = float)):
     ctuple = tuple(cvec)
-    pl.plot(centroids[:][1], -centroids[:][0], lw=0, marker='.', markersize=2, color=ctuple, alpha=1.0, markeredgecolor=None) # for '.' use None instead of 'none'
+    pl.plot(centroids[:][1], -centroids[:][0], lw=0, marker='o', markersize=2, color=ctuple, alpha=0.8, markeredgecolor='none') # for '.' use None instead of 'none'
     pl.axis('image')
-
 
 def nPointSeed(image, n):
     "Seed according to the distribution in the image."
     # Compute a CDF function across the flattened image
     imageCDF = image.flatten().cumsum()
     imageCDF /= 1.0 * imageCDF.max()
+    # np.finfo(np.float).eps
 
     # Function to turn a random point in the CDF into a random index in the image
     indexInterpolator = interpolate.interp1d(imageCDF, arange(imageCDF.size))
@@ -85,25 +91,26 @@ def optimize(generators, centroids, n, shape):
 
 if __name__=='__main__':
     # get a image
-    filename = "try.jpg"
+    filename = "cute.jpg"
     img = misc.imread(filename)
 
-    # cluster the colors and sort them by darkness
-    carray = colorCluster(img, 4, True)
-    args = np.argsort(-np.mean(carray, axis=1))
+    # number of colors to be used
+    K = 10
+    points = []
 
-    for a in args:
+    # cluster image to K colors 
+    carray = colorCluster(img, K)
+    for col in carray:
         # project the image along a color vector
-        c = carray[a]           # color
-        gray_img = to_grayscale(img.astype(np.float), c, 4).squeeze()
+        gray_img = to_grayscale(img.astype(np.float), col).squeeze()
 
         # get the dimensions of image and number of points to replace it with
         imshape = gray_img.shape
-        nPoints = int(float(imshape[0]*imshape[1])/1000.0)
+        nPoints = int(float(imshape[0]*imshape[1])/float(K * 10))
 
         # gimme some numbers
         np.set_printoptions(precision=3)
-        print "{0:.3f}".format(mean(c)), "{0:.3f}".format(mean(gray_img)), c, nPoints
+        print "{0:.3f}".format(mean(col)), "{0:.3f}".format(mean(gray_img)), col, nPoints
 
         # initialize generators and centroids arrays
         generators =  np.zeros([2, nPoints], dtype = np.int)
@@ -113,17 +120,31 @@ if __name__=='__main__':
         generators = nPointSeed(gray_img, nPoints)
         centroids = optimize(generators, centroids, nPoints, imshape)
 
-        # plot the result
-        plotit(centroids, c/255.0)
+        # append the result to the list of points:
+        for cen in centroids.T:
+            points.append(Point(cen, col))
 
-    pl.savefig('Point'+filename, format=None,
+    # randomise order of points to plot
+    print len(points), " points polotted!"
+    random.shuffle(points)
+    pl.figure()
+    for point in points:
+        plotit(point.p, point.c/255.0)
+    pl.axis('image')
+    frame1 = pl.gca()
+    frame1.axes.get_xaxis().set_visible(False)
+    frame1.axes.get_yaxis().set_visible(False)
+    pl.savefig(filename.split(".")[0]+'-point.' + filename.split(".")[-1], 
                transparent=True, bbox_inches='tight', 
                pad_inches=0.0, frameon=None)
 
     pl.figure()
     pl.imshow(img)
     pl.axis('image')
-    pl.savefig('Plot'+filename, format=None,
+    frame2 = pl.gca()
+    frame2.axes.get_xaxis().set_visible(False)
+    frame2.axes.get_yaxis().set_visible(False)
+    pl.savefig(filename.split(".")[0]+'-plot.' + filename.split(".")[-1], 
                transparent=True, bbox_inches='tight', 
                pad_inches=0.0, frameon=None)
     pl.show()
