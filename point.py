@@ -10,7 +10,7 @@ class Point:
         self.p = position
         self.c = color
 
-def to_grayscale(img, vector = np.ones(3, dtype = float), power = 1):
+def to_grayscale(img, vector = np.ones(3, dtype = float), power = 1.0):
     "If img is a color image (3D array), convert it to  a2D array."
     if len(img.shape) == 3:
         img2d = ((np.abs(img - vector))**power).sum(axis = -1)
@@ -18,12 +18,12 @@ def to_grayscale(img, vector = np.ones(3, dtype = float), power = 1):
     else:
         img2d = img
 
-    return (img2d.max() - img2d)/(img2d.max() - img2d.min()) + np.finfo(np.float).eps
+    return (img2d.max() - img2d)/(img2d.max()-img2d.min()) + np.finfo(np.float).eps
 
 
 def plotit(centroids, cvec = np.ones(3, dtype = float)):
     ctuple = tuple(cvec)
-    pl.plot(centroids[:][1], -centroids[:][0], lw=0, marker='o', markersize=2, color=ctuple, alpha=0.8, markeredgecolor='none') # for '.' use None instead of 'none'
+    pl.plot(centroids[:][1], -centroids[:][0], lw=0, marker='o', markersize=3, color=ctuple, alpha=0.9, markeredgecolor='none') # for '.' use None instead of 'none'
     pl.axis('image')
 
 def nPointSeed(image, n):
@@ -31,7 +31,7 @@ def nPointSeed(image, n):
     # Compute a CDF function across the flattened image
     imageCDF = image.flatten().cumsum()
     imageCDF /= 1.0 * imageCDF.max()
-    # np.finfo(np.float).eps
+    imageCDF += np.finfo(np.float).eps
 
     # Function to turn a random point in the CDF into a random index in the image
     indexInterpolator = interpolate.interp1d(imageCDF, arange(imageCDF.size))
@@ -91,26 +91,27 @@ def optimize(generators, centroids, n, shape):
 
 if __name__=='__main__':
     # get a image
-    filename = "cute.jpg"
+    filename = "cloud.png"
     img = misc.imread(filename)
 
     # number of colors to be used
-    K = 10
+    K = 4
     points = []
 
     # cluster image to K colors 
-    carray = colorCluster(img, K)
-    for col in carray:
+    carray, frequency = colorCluster(img, K)
+    for i in range(len(carray)):
         # project the image along a color vector
+        col = carray[i]
         gray_img = to_grayscale(img.astype(np.float), col).squeeze()
 
         # get the dimensions of image and number of points to replace it with
         imshape = gray_img.shape
-        nPoints = int(float(imshape[0]*imshape[1])/float(K * 10))
+        nPoints = int(float(frequency[i]) / 10.0)
 
         # gimme some numbers
         np.set_printoptions(precision=3)
-        print "{0:.3f}".format(mean(col)), "{0:.3f}".format(mean(gray_img)), col, nPoints
+        print "{0:.3f}".format(mean(gray_img)), col, nPoints
 
         # initialize generators and centroids arrays
         generators =  np.zeros([2, nPoints], dtype = np.int)
