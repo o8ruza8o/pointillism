@@ -1,6 +1,6 @@
 from colorCluster import *
 import pylab as pl
-import random
+import cairo
 import numpy as np
 from scipy import *
 from scipy import misc, interpolate, spatial, random, ndimage
@@ -25,6 +25,15 @@ def plotit(centroids, cvec = np.ones(3, dtype = float)):
     ctuple = tuple(cvec)
     pl.plot(centroids[:][1], -centroids[:][0], lw=0, marker='o', markersize=2, color=ctuple, alpha=1.0, markeredgecolor='none') # for '.' use None instead of 'none'
     pl.axis('image')
+
+
+def drawCircle(ctx, center, radius, color):
+    ctx.save()
+    ctx.move_to(center[0] - r, center[1])
+    ctx.arc(center[0], center[1], r, -pi, pi)
+    ctx.set_source_rgba(color[0], color[1], color[2], 0.9);
+    ctx.fill();
+    ctx.stroke()
 
 def nPointSeed(image, n):
     "Seed according to the distribution in the image."
@@ -81,7 +90,7 @@ def optimize(generators, centroids, n, shape):
         centroids = np.array(ndimage.measurements.center_of_mass(gray_img, region, range(n))).T
                     
         # move each region's generator to it's centroid
-        if (np.abs(generators - centroids)).max() < 5.0:
+        if (np.abs(generators - centroids)).max() < 2.0:
             break
 
         generators[:] = np.round(centroids.copy())
@@ -91,14 +100,14 @@ def optimize(generators, centroids, n, shape):
 
 if __name__=='__main__':
     # get the image to be stippled
-    filename = "shoe.png"
+    filename = "wall.jpg"
     img = misc.imread(filename)
     points = []
     K = 1
 
     if (len(img.shape) == 3 and (K > 1)):
         # if color image cluster it to K colors 
-        carray, frequency = colorCluster(img, 8)
+        carray, frequency = colorCluster(img, K)
     else:  # black stipples only
         K = 1
         carray = np.array([[0.0] * 3])
@@ -107,7 +116,7 @@ if __name__=='__main__':
     for i in range(K):
         # project the image along a color vector
         col = carray[i]
-        gray_img = to_grayscale(img.astype(np.float), col).squeeze()
+        gray_img = to_grayscale(img.astype(np.float), col, 0.5).squeeze()
 
         # get the dimensions of image and number of points to replace it with
         imshape = gray_img.shape
@@ -132,26 +141,47 @@ if __name__=='__main__':
     # randomise order of points to plot
     print len(points), " points polotted!"
     random.shuffle(points)
-    pl.figure()
-    for point in points:
-        plotit(point.p, point.c/255.0)
-    pl.axis('image')
-    frame1 = pl.gca()
-    frame1.axes.get_xaxis().set_visible(False)
-    frame1.axes.get_yaxis().set_visible(False)
-    pl.savefig(filename.split(".")[0]+'-point.' + filename.split(".")[-1], 
-               transparent=True, bbox_inches='tight', 
-               pad_inches=0.0, frameon=None)
+    # pl.figure()
+    # for point in points:
+    #     plotit(point.p, point.c/255.0)
+    # pl.axis('image')
+    # frame1 = pl.gca()
+    # frame1.axes.get_xaxis().set_visible(False)
+    # frame1.axes.get_yaxis().set_visible(False)
+    # pl.savefig(filename.split(".")[0]+'-point.' + filename.split(".")[-1], 
+    #            transparent=True, bbox_inches='tight', 
+    #            pad_inches=0.0, frameon=None)
 
-    pl.figure()
-    pl.imshow(img)
-    pl.axis('image')
-    if K == 1: 
-        pl.gray()
-    frame2 = pl.gca()
-    frame2.axes.get_xaxis().set_visible(False)
-    frame2.axes.get_yaxis().set_visible(False)
-    pl.savefig(filename.split(".")[0]+'-plot.' + filename.split(".")[-1], 
-               transparent=True, bbox_inches='tight', 
-               pad_inches=0.0, frameon=None)
-    pl.show()
+    # pl.figure()
+    # pl.imshow(img)
+    # pl.axis('image')
+    # if K == 1: 
+    #     pl.gray()
+    # frame2 = pl.gca()
+    # frame2.axes.get_xaxis().set_visible(False)
+    # frame2.axes.get_yaxis().set_visible(False)
+    # pl.savefig(filename.split(".")[0]+'-plot.' + filename.split(".")[-1], 
+    #            transparent=True, bbox_inches='tight', 
+    #            pad_inches=0.0, frameon=None)
+    # pl.show()
+
+    # Make a pdf surface
+    surf =  cairo.PDFSurface(open(filename.split(".")[0]+'-point.pdf', "w"), 
+                             img.shape[0], img.shape[1])
+    # Make a svg surface
+    # surf =  cairo.SVGSurface(open("test.svg", "w"), , h)
+    
+    # Get a context object and set line width
+    ctx = cairo.Context(surf)
+    lineWidth = 0.0
+    ctx.set_line_width(lineWidth)
+    r = 2.0
+
+    # both center and scale are defined by biggest circle
+    # next: translate and scale the data not the context
+    # ctx.translate(w/2, h/2)
+    # ctx.scale((w/2 - padding)/abs(biggest[0]), (h/2 - padding)/abs(biggest[0]))
+
+    for point in points:
+        drawCircle(ctx, point.p, r, point.c/255.0)
+    surf.finish()
