@@ -20,17 +20,10 @@ def to_grayscale(img, vector = np.ones(3, dtype = float), power = 1.0):
 
     return (img2d.max() - img2d)/(img2d.max()-img2d.min()) + np.finfo(np.float).eps
 
-
-def plotit(centroids, cvec = np.ones(3, dtype = float)):
-    ctuple = tuple(cvec)
-    pl.plot(centroids[:][1], -centroids[:][0], lw=0, marker='o', markersize=2, color=ctuple, alpha=1.0, markeredgecolor='none') # for '.' use None instead of 'none'
-    pl.axis('image')
-
-
 def drawCircle(ctx, center, radius, color):
     ctx.save()
-    ctx.move_to(center[0] - r, center[1])
-    ctx.arc(center[0], center[1], r, -pi, pi)
+    ctx.move_to(center[0] - radius, center[1])
+    ctx.arc(center[0], center[1], radius, -pi, pi)
     ctx.set_source_rgba(color[0], color[1], color[2], 0.9);
     ctx.fill();
     ctx.stroke()
@@ -40,7 +33,6 @@ def nPointSeed(image, n):
     # Compute a CDF function across the flattened image
     imageCDF = image.flatten().cumsum()
     imageCDF /= 1.0 * imageCDF.max()
-    imageCDF += np.finfo(np.float).eps
 
     # Function to turn a random point in the CDF into a random index in the image
     indexInterpolator = interpolate.interp1d(imageCDF, arange(imageCDF.size))
@@ -50,7 +42,7 @@ def nPointSeed(image, n):
     while len(indexContainer) < n:
         # Generate at most the number of points remaining
         maxToGenerate = n - len(indexContainer)
-        randomCDFValues = random.uniform(0, 1.0, maxToGenerate)
+        randomCDFValues = random.uniform(np.finfo(np.float).eps, 1.0-np.finfo(np.float).eps, maxToGenerate)
 
         # Back them into indices
         iInterp = indexInterpolator(randomCDFValues)
@@ -69,7 +61,7 @@ def nPointSeed(image, n):
     # Return them glued together.
     return np.c_[xCoords, yCoords].T
 
-def optimize(generators, centroids, n, shape):
+def optimize(generators, centroids, n, shape, radius):
     count = 0
     while True:
         gens = np.ones(shape, dtype = int)
@@ -90,7 +82,7 @@ def optimize(generators, centroids, n, shape):
         centroids = np.array(ndimage.measurements.center_of_mass(gray_img, region, range(n))).T
                     
         # move each region's generator to it's centroid
-        if (np.abs(generators - centroids)).max() < 2.0:
+        if (np.abs(generators - centroids)).max() < radius:
             break
 
         generators[:] = np.round(centroids.copy())
@@ -103,6 +95,7 @@ if __name__=='__main__':
     filename = "wall.jpg"
     img = misc.imread(filename)
     points = []
+    radius = 1.0
     K = 1
 
     if (len(img.shape) == 3 and (K > 1)):
@@ -120,7 +113,7 @@ if __name__=='__main__':
 
         # get the dimensions of image and number of points to replace it with
         imshape = gray_img.shape
-        nPoints = int(float(frequency[i]) / 50.0)
+        nPoints = int(float(frequency[i]) / 30.0)
 
         # gimme some numbers
         np.set_printoptions(precision=3)
@@ -132,56 +125,36 @@ if __name__=='__main__':
 
         # seed generators and optimize centroids
         generators = nPointSeed(gray_img, nPoints)
-        centroids = optimize(generators, centroids, nPoints, imshape)
+        centroids = optimize(generators, centroids, nPoints, imshape, radius)
 
         # append the result to the list of points:
         for cen in centroids.T:
             points.append(Point(cen, col))
 
     # randomise order of points to plot
-    print len(points), " points polotted!"
     random.shuffle(points)
-    # pl.figure()
-    # for point in points:
-    #     plotit(point.p, point.c/255.0)
-    # pl.axis('image')
-    # frame1 = pl.gca()
-    # frame1.axes.get_xaxis().set_visible(False)
-    # frame1.axes.get_yaxis().set_visible(False)
-    # pl.savefig(filename.split(".")[0]+'-point.' + filename.split(".")[-1], 
-    #            transparent=True, bbox_inches='tight', 
-    #            pad_inches=0.0, frameon=None)
-
-    # pl.figure()
-    # pl.imshow(img)
-    # pl.axis('image')
-    # if K == 1: 
-    #     pl.gray()
-    # frame2 = pl.gca()
-    # frame2.axes.get_xaxis().set_visible(False)
-    # frame2.axes.get_yaxis().set_visible(False)
-    # pl.savefig(filename.split(".")[0]+'-plot.' + filename.split(".")[-1], 
-    #            transparent=True, bbox_inches='tight', 
-    #            pad_inches=0.0, frameon=None)
-    # pl.show()
 
     # Make a pdf surface
     surf =  cairo.PDFSurface(open(filename.split(".")[0]+'-point.pdf', "w"), 
                              img.shape[0], img.shape[1])
     # Make a svg surface
-    # surf =  cairo.SVGSurface(open("test.svg", "w"), , h)
+    # surf =  cairo.SVGSurface(open("test.svg", "w"), img.shape[0], img.shape[1])
     
     # Get a context object and set line width
     ctx = cairo.Context(surf)
-    lineWidth = 0.0
-    ctx.set_line_width(lineWidth)
-    r = 2.0
+    ctx.set_line_width(0.0)
 
-    # both center and scale are defined by biggest circle
-    # next: translate and scale the data not the context
-    # ctx.translate(w/2, h/2)
-    # ctx.scale((w/2 - padding)/abs(biggest[0]), (h/2 - padding)/abs(biggest[0]))
+    # Make a data file
+    with  open(filename.split(".")[0]+'-data.csv', "w") as datafile:
+        datafile.write("d,x,y,r,g,b\n")
+        for point in points:
+            drawCircle(ctx, point.p, radius, point.c/255.0)
+            datafile.write(str(radius) + "," + 
+                           str(point.p[0]) + "," + 
+                           str(point.p[1]) + "," +
+                           str(point.c[0]) + "," +
+                           str(point.c[1]) + "," +
+                           str(point.c[2]) + "\n")
 
-    for point in points:
-        drawCircle(ctx, point.p, r, point.c/255.0)
     surf.finish()
+    print len(points), " points polotted!"
