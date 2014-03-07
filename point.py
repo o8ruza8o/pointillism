@@ -23,7 +23,7 @@ def to_grayscale(img, vector = np.ones(3, dtype = float), power = 1.0):
 
 def plotit(centroids, cvec = np.ones(3, dtype = float)):
     ctuple = tuple(cvec)
-    pl.plot(centroids[:][1], -centroids[:][0], lw=0, marker='o', markersize=3, color=ctuple, alpha=0.9, markeredgecolor='none') # for '.' use None instead of 'none'
+    pl.plot(centroids[:][1], -centroids[:][0], lw=0, marker='o', markersize=2, color=ctuple, alpha=1.0, markeredgecolor='none') # for '.' use None instead of 'none'
     pl.axis('image')
 
 def nPointSeed(image, n):
@@ -90,24 +90,28 @@ def optimize(generators, centroids, n, shape):
 
 
 if __name__=='__main__':
-    # get a image
-    filename = "cloud.png"
+    # get the image to be stippled
+    filename = "shoe.png"
     img = misc.imread(filename)
-
-    # number of colors to be used
-    K = 4
     points = []
+    K = 1
 
-    # cluster image to K colors 
-    carray, frequency = colorCluster(img, K)
-    for i in range(len(carray)):
+    if (len(img.shape) == 3 and (K > 1)):
+        # if color image cluster it to K colors 
+        carray, frequency = colorCluster(img, 8)
+    else:  # black stipples only
+        K = 1
+        carray = np.array([[0.0] * 3])
+        frequency = [mean(img)/255.0 * img.shape[0] * img.shape[1]]
+        
+    for i in range(K):
         # project the image along a color vector
         col = carray[i]
         gray_img = to_grayscale(img.astype(np.float), col).squeeze()
 
         # get the dimensions of image and number of points to replace it with
         imshape = gray_img.shape
-        nPoints = int(float(frequency[i]) / 10.0)
+        nPoints = int(float(frequency[i]) / 50.0)
 
         # gimme some numbers
         np.set_printoptions(precision=3)
@@ -142,6 +146,8 @@ if __name__=='__main__':
     pl.figure()
     pl.imshow(img)
     pl.axis('image')
+    if K == 1: 
+        pl.gray()
     frame2 = pl.gca()
     frame2.axes.get_xaxis().set_visible(False)
     frame2.axes.get_yaxis().set_visible(False)
