@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <title>D3 Drawing Circles in CSS</title>
-        <script type="text/javascript" src="http://d3js.org/d3.v3.js"></script>
+        <script type="text/javascript" src="d3.js"></script>
     </head>
     <body>
         <style type="text/css">
@@ -13,52 +13,38 @@
           }
           p {
             font-family: sans-serif;
-            color: tea
-l;
-          }
-          div.bar {
-            display: inline-block;
-            margin-right: 3px;
-            width: 30px;
-            height: 75px;
-            background-color: teal;
-          }
-          .sun { /* svg */
-            fill: rgba(24, 167, 181, 0.15);
-            stroke: rgb(0, 0, 0);
-            stroke-width: 1;
+            color: teal;
           }
         </style>
-        <h3> Pointillism </h3>
         <script>
-          var data;
+          d3.select("body").append("h3").text("Pointillism");
 
-          d3.csv("wall-data.csv", function(error, csv) {
+          var data;
+          d3.csv("cute-data.csv", function(error, csv) {
             if (error) return console.warn(error);
             data = csv;
-          // width and height should be obtained from image
-          w = 1366
-          h = 854
 
-          // create svg element
+          // obtain width and height from data
+          var w = d3.max(data, function(d) { return Math.round(d.y); });
+          var h = d3.max(data, function(d) { return Math.round(d.x); });
+
+          // create svg element with these width and height
           var svg = d3.select("body").append("svg");
-          svg.attr("width", w / 2.0)
-             .attr("height", h / 2.0);
+          svg.attr("width", w)
+             .attr("height", h);
 
-          // draw gasket
+          // draw circles
           var circles = svg.selectAll("circle")
                            .data(data)
                            .enter()
                            .append("circle");
-          circles.attr("cx", function(d) { return d.y / 2.0; })
-                 .attr("cy", function(d) { return d.x / 2.0; })
+          circles.attr("cx", function(d) { return d.y; })
+                 .attr("cy", function(d) { return d.x; })
                  .attr("r",  function(d) { return d.d / 2.0; })
-                 .attr("fill", function(d) { return "rgba(" + d.r + ", " + d.g + ", " + d.b + + ", .85)"; })
-                 .attr("stroke", "black")
-                 .attr("stroke-width", "1");
-          
+                 .attr("fill", function(d) { return "rgba(" + Math.round(d.r) + ", " + Math.round(d.g) + ", " + Math.round(d.b) + ", 0.85)"; })
+                 .attr("stroke", "none");
 
-          d3.select("body").append("p").text("stippling");
+          d3.select("body").append("p").text("stippled!");
           });
         </script>
     </body>

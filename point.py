@@ -10,22 +10,22 @@ class Point:
         self.p = position
         self.c = color
 
-def to_grayscale(img, vector = np.ones(3, dtype = float), power = 1.0):
+def projectImage(img, vector = np.ones(3, dtype = float), power = 1.0):
     "If img is a color image (3D array), convert it to  a2D array."
     if len(img.shape) == 3:
         img2d = ((np.abs(img - vector))**power).sum(axis = -1)
-        np.set_printoptions(precision=3)
     else:
         img2d = img
 
     return (img2d.max() - img2d)/(img2d.max()-img2d.min()) + np.finfo(np.float).eps
 
 def drawCircle(ctx, center, radius, color):
+    "Draw a circle using Cairo vector graphics."
     ctx.save()
     ctx.move_to(center[0] - radius, center[1])
     ctx.arc(center[0], center[1], radius, -pi, pi)
-    ctx.set_source_rgba(color[0], color[1], color[2], 0.9);
-    ctx.fill();
+    ctx.set_source_rgba(color[0], color[1], color[2], 0.9)
+    ctx.fill()
     ctx.stroke()
 
 def nPointSeed(image, n):
@@ -62,7 +62,7 @@ def nPointSeed(image, n):
     return np.c_[xCoords, yCoords].T
 
 def optimize(generators, centroids, n, shape, radius):
-    count = 0
+    "Optimization using centroids of weighted Vornoi diagrams."
     while True:
         gens = np.ones(shape, dtype = int)
         gen2region = np.zeros(shape, dtype = int)
@@ -86,16 +86,15 @@ def optimize(generators, centroids, n, shape, radius):
             break
 
         generators[:] = np.round(centroids.copy())
-        count += 1
     return centroids
 
 
 if __name__=='__main__':
     # get the image to be stippled
-    filename = "wall.jpg"
+    filename = "cute.jpg"
     img = misc.imread(filename)
     points = []
-    radius = 1.0
+    radius = 2.0
     K = 1
 
     if (len(img.shape) == 3 and (K > 1)):
@@ -109,11 +108,11 @@ if __name__=='__main__':
     for i in range(K):
         # project the image along a color vector
         col = carray[i]
-        gray_img = to_grayscale(img.astype(np.float), col, 0.5).squeeze()
+        gray_img = projectImage(img.astype(np.float), col, 0.5).squeeze()
 
         # get the dimensions of image and number of points to replace it with
         imshape = gray_img.shape
-        nPoints = int(float(frequency[i]) / 30.0)
+        nPoints = int(float(frequency[i]) / 10.0)
 
         # gimme some numbers
         np.set_printoptions(precision=3)
@@ -135,8 +134,8 @@ if __name__=='__main__':
     random.shuffle(points)
 
     # Make a pdf surface
-    surf =  cairo.PDFSurface(open(filename.split(".")[0]+'-point.pdf', "w"), 
-                             img.shape[0], img.shape[1])
+    surf =  cairo.PDFSurface(open(filename.split(".")[0]+str(K)+'point.pdf',
+                                  "w"), img.shape[0], img.shape[1])
     # Make a svg surface
     # surf =  cairo.SVGSurface(open("test.svg", "w"), img.shape[0], img.shape[1])
     
@@ -152,9 +151,9 @@ if __name__=='__main__':
             datafile.write(str(radius) + "," + 
                            str(point.p[0]) + "," + 
                            str(point.p[1]) + "," +
-                           str(point.c[0]) + "," +
-                           str(point.c[1]) + "," +
-                           str(point.c[2]) + "\n")
+                           str(int(point.c[0])) + "," +
+                           str(int(point.c[1])) + "," +
+                           str(int(point.c[2])) + "\n")
 
     surf.finish()
     print len(points), " points polotted!"
