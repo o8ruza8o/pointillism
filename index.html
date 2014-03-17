@@ -20,7 +20,7 @@
           d3.select("body").append("h3").text("Pointillism");
 
           var data;
-          d3.csv("cute-data.csv", function(error, csv) {
+          d3.csv("smiley-data.csv", function(error, csv) {
             if (error) return console.warn(error);
             data = csv;
 
@@ -30,19 +30,32 @@
 
           // create svg element with these width and height
           var svg = d3.select("body").append("svg");
-          svg.attr("width", w)
-             .attr("height", h);
+          svg.attr("width", w + 2)
+             .attr("height", h + 2);
 
           // draw circles
-          var circles = svg.selectAll("circle")
-                           .data(data)
-                           .enter()
-                           .append("circle");
-          circles.attr("cx", function(d) { return d.y; })
-                 .attr("cy", function(d) { return d.x; })
-                 .attr("r",  function(d) { return d.d / 2.0; })
-                 .attr("fill", function(d) { return "rgba(" + Math.round(d.r) + ", " + Math.round(d.g) + ", " + Math.round(d.b) + ", 0.85)"; })
-                 .attr("stroke", "none");
+          <!-- var circles = svg.selectAll("circle") -->
+          <!--                  .data(data) -->
+          <!--                  .enter() -->
+          <!--                  .append("circle"); -->
+
+          <!-- circles.attr("cx", function(d) { return d.y; }) -->
+          <!--        .attr("cy", function(d) { return d.x; }) -->
+          <!--        .attr("r",  function(d) { return d.d; }) -->
+          <!--        .attr("fill", function(d) { return "rgba(" + Math.round(d.r) + ", " + Math.round(d.g) + ", " + Math.round(d.b) + ", 0.85)"; }) -->
+          <!--        .attr("stroke", "none"); -->
+
+          // draw lines
+          var lineFunction = d3.svg.line()
+                                   .x(function(d) { return d.y; })
+                                   .y(function(d) { return d.x; })
+                                   .interpolate("linear");
+
+          var lineGraph = svg.append("path")
+                             .attr("d", lineFunction(data))
+                             .attr("stroke", "teal")
+                             .attr("stroke-width", 1)
+                             .attr("fill", "none");
 
           d3.select("body").append("p").text("stippled!");
           });

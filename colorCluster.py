@@ -1,14 +1,13 @@
-from numpy import *
+import numpy as np
 from scipy import misc, ndimage
 from sklearn.cluster import KMeans
-from pylab import *
 
 def colorCluster(colorImage, nColorClusters, showSegmentation = False):
     # Compute the pix image shape
     imageShape = colorImage.shape[0:2]
 
     # Unroll the image into RGB vector (3 x pix count)
-    rgbs = colorImage.reshape((-1, 3)).astype(float64)
+    rgbs = colorImage.reshape((-1, 3)).astype(np.float64)
 
     # Fit it with a kmeans estimator
     kme = KMeans(init='k-means++', n_clusters=nColorClusters, n_init=10)
@@ -24,12 +23,13 @@ def colorCluster(colorImage, nColorClusters, showSegmentation = False):
 
     # Show the quantized image if desired
     if showSegmentation:
-        figure()
-        imshow(colorImage)
+        import pylab as pl
+        pl.figure()
+        pl.imshow(colorImage)
 
-        figure()
-        imshow(projected)
-        show()
+        pl.figure()
+        pl.imshow(projected)
+        pl.show()
 
     # What a derpy attr name. . .
     return kme.cluster_centers_, frequency
