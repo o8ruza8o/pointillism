@@ -3,59 +3,64 @@
     <head>
         <meta charset="utf-8">
         <title>D3 Drawing Circles in CSS</title>
-        <script type="text/javascript" src="d3.js"></script>
+        <script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
     </head>
     <body>
         <style type="text/css">
           h3 {
             font-family: sans-serif;
-            color: teal;
+            color: DarkSlateGray;
           }
           p {
             font-family: sans-serif;
-            color: teal;
+            color: DarkSlateGray;
+          }
+          .graph-svg-component {
+          background-color: DarkSlateGray;
           }
         </style>
         <script>
-          d3.select("body").append("h3").text("Pointillism");
+          d3.select("body").append("h3").text("Haeckel Pointillism");
 
           var data;
-          d3.csv("smiley-data.csv", function(error, csv) {
+          d3.csv("Haeckel-Diatoms-2-data.csv", function(error, csv) {
             if (error) return console.warn(error);
             data = csv;
 
           // obtain width and height from data
-          var w = d3.max(data, function(d) { return Math.round(d.y); });
-          var h = d3.max(data, function(d) { return Math.round(d.x); });
+          var w = d3.max(data, function(d) { return Math.round(d.y / 2.0); });
+          var h = d3.max(data, function(d) { return Math.round(d.x / 2.0); });
 
           // create svg element with these width and height
           var svg = d3.select("body").append("svg");
           svg.attr("width", w + 2)
-             .attr("height", h + 2);
+             .attr("height", h + 2)
+             .attr("class", "graph-svg-component");
 
           // draw circles
-          <!-- var circles = svg.selectAll("circle") -->
-          <!--                  .data(data) -->
-          <!--                  .enter() -->
-          <!--                  .append("circle"); -->
+          var circles = svg.selectAll("circle")
+                           .data(data)
+                           .enter()
+                           .append("circle");
 
-          <!-- circles.attr("cx", function(d) { return d.y; }) -->
-          <!--        .attr("cy", function(d) { return d.x; }) -->
-          <!--        .attr("r",  function(d) { return d.d; }) -->
-          <!--        .attr("fill", function(d) { return "rgba(" + Math.round(d.r) + ", " + Math.round(d.g) + ", " + Math.round(d.b) + ", 0.85)"; }) -->
-          <!--        .attr("stroke", "none"); -->
+          circles.attr("cx", function(d) { return Math.round(d.y / 2.0); })
+                 .attr("cy", function(d) { return Math.round(d.x / 2.0); })
+                 .attr("r",  function(d) { return 1; })
+                 .attr("fill", "rgba(255, 255, 255, 140)")
+                 <!-- .attr("fill", function(d) { return "rgba(" + Math.round(d.r) + ", " + Math.round(d.g) + ", " + Math.round(d.b) + ", 0.95)"; }) -->
+                 .attr("stroke", "none");
 
           // draw lines
-          var lineFunction = d3.svg.line()
-                                   .x(function(d) { return d.y; })
-                                   .y(function(d) { return d.x; })
-                                   .interpolate("linear");
+          <!-- var lineFunction = d3.svg.line() -->
+          <!--                          .x(function(d) { return d.y; }) -->
+          <!--                          .y(function(d) { return d.x; }) -->
+          <!--                          .interpolate("linear"); -->
 
-          var lineGraph = svg.append("path")
-                             .attr("d", lineFunction(data))
-                             .attr("stroke", "teal")
-                             .attr("stroke-width", 1)
-                             .attr("fill", "none");
+          <!-- var lineGraph = svg.append("path") -->
+          <!--                    .attr("d", lineFunction(data)) -->
+          <!--                    .attr("stroke", "teal") -->
+          <!--                    .attr("stroke-width", 1) -->
+          <!--                    .attr("fill", "none"); -->
 
           d3.select("body").append("p").text("stippled!");
           });

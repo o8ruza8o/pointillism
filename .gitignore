@@ -1,6 +1,8 @@
 *~
 *.png
 *.jpg
+*.jpeg
+*.gif
 *.svg
 *.pyc
 *.pdf
